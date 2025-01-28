@@ -1,4 +1,5 @@
 ---
+import '../styles/global.css';
 import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
 
@@ -7,5 +8,63 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout>
-	<Welcome />
+  <main class="h-screen w-screen flex flex-col justify-center items-center">
+    <form
+      id="guessThePaintingForm"
+      class="flex flex-col gap-4 max-w-md mx-auto justify-center items-center"
+    >
+      <label for="userPaintingDescription" class="block text-center">
+        Describe the painting without mentioning the artist, and we'll try to paint it. Let's see if
+        we can guess the painting!
+      </label>
+      <textarea
+        name="userPaintingDescription"
+        id="userPaintingDescription"
+        wrap="hard"
+        class="field-sizing-content min-h-30 max-h-50 w-full"></textarea>
+      <button id="submitButton" class="text-white!" type="submit">Submit</button>
+    </form>
+  </main>
 </Layout>
+
+<script>
+  const $form = document.querySelector('#guessThePaintingForm');
+  $form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formValues = new FormData(e.target as HTMLFormElement);
+
+    const description = formValues.get('userPaintingDescription');
+
+    if (!description) {
+      alert('Please enter a description!');
+      return;
+    }
+
+    const $submitButton = document.querySelector('#submitButton') as HTMLButtonElement;
+    $submitButton.disabled = true;
+    $submitButton.innerHTML = 'Generating...';
+
+    const response = await fetch('/api/generate-image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: description,
+      }),
+    });
+    $submitButton.disabled = false;
+    $submitButton.innerHTML = 'Submit';
+
+    if (response.status !== 200) {
+      alert('Error generating image');
+    }
+    const data = await response.json();
+
+    const $main = document.querySelector('main') as HTMLElement;
+    $main.insertAdjacentHTML(
+      'afterbegin', // Adds the content as the first child of $main
+      `<img src="${data.url}" alt="${description}" class="w-[300px] mb-4" />`,
+    );
+  });
+</script>
